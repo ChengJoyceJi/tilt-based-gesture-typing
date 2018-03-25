@@ -1,6 +1,5 @@
 package com.example.joyce.myapplication;
 
-import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,7 +15,12 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
+
+    private native void helloLog(String logThis);
+    private native void sendevent(String device, String type, String code, String value);
 
     Context mContext;
     EditText mEditText;
@@ -32,14 +36,6 @@ public class MainActivity extends AppCompatActivity {
 
     Server server;
 
-    private enum STATE {
-        TYPING,
-        WORD_SELECTION,
-        IDLING
-    }
-
-    STATE state;
-
     float[] gyroData = new float[] {0, 0, 0};
     int indicator = 1;
 
@@ -51,6 +47,10 @@ public class MainActivity extends AppCompatActivity {
 
     float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 750, 670, 1000};
     float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
+
+    static {
+        System.loadLibrary("myapplication");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,12 +98,6 @@ public class MainActivity extends AppCompatActivity {
 //                    }
 //                }).start();
 
-//                Canvas c = new Canvas();
-//                Paint paint = new Paint();
-//                paint.setColor(Color.rgb(0,255, 0));
-//                paint.setStrokeWidth(10);
-//                paint.setStyle(Paint.Style.STROKE);
-//                c.drawRect(100, 100, 200, 200, paint);
                 String tapCommand = "adb shell input tap 150 730\n";
                 runCommand(tapCommand);
 
@@ -114,17 +108,23 @@ public class MainActivity extends AppCompatActivity {
         mButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String command = "adb shell\n"
-                        .concat(startTyping(306, 1852))
-                        .concat(setPos(386, 1660))
-                        .concat(setPos(548, 1652))
-                        .concat(setPos(657, 1852))
-                        .concat(setPos(766, 2052))
-                        .concat(setPos(576, 1856))
-                        .concat(setPos(386, 1660))
-                        .concat(setPos(548, 1652))
-                        .concat(finishTyping(548, 1652));
-                runCommand(command);
+//                String command = "adb shell\n"
+//                        .concat(startTyping(306, 1852))
+//                        .concat(setPos(386, 1660))
+//                        .concat(setPos(548, 1652))
+//                        .concat(setPos(657, 1852))
+//                        .concat(setPos(766, 2052))
+//                        .concat(setPos(576, 1856))
+//                        .concat(setPos(386, 1660))
+//                        .concat(setPos(548, 1652))
+//                        .concat(finishTyping(548, 1652));
+//                runCommand(command);
+
+                helloLog("This will log to LogCat via the native call.");
+                List<String[]> argvs = Util.splitCommand(getTapEample());
+                for (String[] argv : argvs) {
+                    sendevent(argv[1], argv[2], argv[3], argv[4]);
+                }
             }
         });
 
@@ -138,144 +138,6 @@ public class MainActivity extends AppCompatActivity {
 //                mMovingBall = customView.findViewById(R.id.anim_view2);
             }
         });
-
-//        mStartButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                new Thread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        state = STATE.IDLING;
-//
-//                        float startX;
-//                        float startY;
-//
-//                        if (ChatHeadService.getInstance() != null) {
-//                            float[] xy = ChatHeadService.getInstance().getXY();
-//                            startX = xy[0] * 2;
-//                            startY = xy[1] * 2;
-//                        } else {
-//                            startX = 750;
-//                            startY = 1850;
-//                        }
-//
-//                        float[] prevData = gyroData.clone();
-//                        int prevIndicator = indicator;
-//
-//                        try {
-//                            Process su = Runtime.getRuntime().exec("su");
-//                            DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
-//                            String command = "adb shell\n";
-//                            outputStream.writeBytes(command);
-//
-//                            while (true) {
-//                                float[] newCoords = chatHeadXyToShellCommandCoordSelectWord();
-//                                // button clicked
-//                                if (indicator == 0) {
-//                                    if (prevIndicator == 1) {
-//                                        if (state == STATE.IDLING) {
-//                                            if (isSelectWord(newCoords[0], newCoords[1])) {
-//                                                command = doTap(newCoords[0]/2, newCoords[1]/2);
-//                                                outputStream.writeBytes(command);
-//                                                outputStream.flush();
-//                                            } else {
-//                                                float[] startCoords = chatHeadXyToShellCommandCoord();
-//                                                command = startTyping(startCoords[0], startCoords[1]);
-//                                                outputStream.writeBytes(command);
-//                                                outputStream.flush();
-//                                                state = STATE.TYPING;
-//                                            }
-//                                        } else if (state == STATE.TYPING) {
-//
-//                                            command = finishTyping(newCoords[0], newCoords[1]);
-//                                            outputStream.writeBytes(command);
-//                                            outputStream.flush();
-//                                            state = STATE.IDLING;
-//                                        }
-//                                    }
-//                                }
-//
-//                                if (prevData[1] == gyroData[1] && prevData[2] == gyroData[2]) {
-//                                    Thread.sleep(200);
-//                                    continue;
-//                                }
-//
-//                                if (state == STATE.TYPING) {
-//                                    command = setPos(newCoords[0], newCoords[1]);
-//                                    System.out.println("hello");
-//                                    outputStream.writeBytes(command);
-//                                    outputStream.flush();
-//                                }
-//
-//                                prevData = gyroData.clone();
-//                                prevIndicator = indicator;
-//                                Thread.sleep(200);
-//                            }
-
-//                            su.getOutputStream().write("exit\n".getBytes());
-//                            su.waitFor();
-
-
-
-
-
-//                            float[] prevData = gyroData.clone();
-//                            int prevIndicator = indicator;
-
-//                            runCommand(command);
-//                            while (true) {
-//                                if (indicator == 0) {
-//                                    if (prevIndicator == 1) {
-//                                        command = finishTyping();
-//                                        outputStream.writeBytes(command);
-//                                        state = STATE.WORD_SELECTION;
-//                                        break;
-//                                    }
-//                                }
-//                                if (prevData[1] == gyroData[1] && prevData[2] == gyroData[2]) {
-//                                    continue;
-//                                }
-//                                float[] newCoords = chatHeadXyToShellCommandCoord();
-//                                command = setPos(newCoords[0], newCoords[1]);
-//                                System.out.println("hello");
-//                                outputStream.writeBytes(command);
-//                                prevData = gyroData.clone();
-//                                prevIndicator = indicator;
-//                                Thread.sleep(200);
-//                            }
-//                            System.out.println("ended");
-//                            outputStream.writeBytes("exit\n");
-//                            su.waitFor();
-//
-//                            while (state == STATE.WORD_SELECTION) {
-//                                if (prevData[1] == gyroData[1] && prevData[2] == gyroData[2]) {
-//                                    continue;
-//                                }
-//                                int wordSelection = selectWords(gyroData[1], gyroData[2]);
-//                                System.out.println(wordSelection);
-//                                ChatHeadService.getInstance().showWordBox(wordSelection);
-//                                if (indicator == 0) {
-//                                    if (prevIndicator == 1) {
-//                                        String tapCommand = "adb shell input tap 150 730\n";
-////                                        su.getOutputStream().write(tapCommand.getBytes());
-////                                        runCommand(tapCommand);
-//                                        state = STATE.IDLING;
-//                                    }
-//                                }
-//                                prevData = gyroData.clone();
-//                                prevIndicator = indicator;
-//                            }
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//
-//
-//                    }
-//                }).start();
-//            }
-//        });
 
         server = new Server(this);
         infoip.setText(server.getIpAddress() + ":" + server.getPort());
@@ -339,6 +201,20 @@ public class MainActivity extends AppCompatActivity {
         return String.format("input tap %f %f\n", x, y);
     }
 
+    public String getTapEample() {
+        return "sendevent /dev/input/event2 3 57 368\n" +
+                "sendevent /dev/input/event2 3 53 765\n" +
+                "sendevent /dev/input/event2 3 54 1900\n" +
+                "sendevent /dev/input/event2 3 58 51\n" +
+                "sendevent /dev/input/event2 3 48 5\n" +
+                "sendevent /dev/input/event2 0 0 0\n" +
+                "sendevent /dev/input/event2 3 54 1899\n" +
+                "sendevent /dev/input/event2 3 58 46\n" +
+                "sendevent /dev/input/event2 0 0 0\n" +
+                "sendevent /dev/input/event2 3 57 4294967295\n" +
+                "sendevent /dev/input/event2 0 0 0\n";
+    }
+
 
     // Mapping: gyro -> coordinate
     // Keyboard swipe: gyroToCoords(row, pitch, 0, 1500, 1600, 2100)
@@ -382,12 +258,6 @@ public class MainActivity extends AppCompatActivity {
         return Util.rectToRectMapping(CHATHEAD_SELECTWORD_RECT, KEYBOARD_SELECTWORD_RECT, xy[0], xy[1]);
     }
 
-    public boolean isSelectWord(float x, float y) {
-        return y < 1600;
-    }
 
-    public boolean isDelectWord() {
-        return false;
-    }
 
 }

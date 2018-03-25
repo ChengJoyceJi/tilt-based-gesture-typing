@@ -1,5 +1,8 @@
 package com.example.joyce.myapplication;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by joyce on 2018-03-12.
  */
@@ -29,6 +32,16 @@ public class Util {
         newy = Math.min(newy, ymax2);
 
         return new float[] {newx, newy};
+    }
+
+    public static List<String[]> splitCommand(String command) {
+        String[] commands = command.split("\n");
+        List<String[]> result = new ArrayList<>();
+        for (String c : commands) {
+            String[] cc = c.split(" ");
+            result.add(cc);
+        }
+        return result;
     }
 
 }

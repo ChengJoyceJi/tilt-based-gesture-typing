@@ -13,12 +13,17 @@ import android.widget.Toast;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by joyce on 2018-03-15.
  */
 
 public class GestureTypingService extends Service {
+
+    private native void sendevent(int fd, String type, String code, String value);
+    private native int openfile();
+    private native int closefile(int fd);
 
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
@@ -31,6 +36,7 @@ public class GestureTypingService extends Service {
     float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
 
     int eventCount = 1;
+    int fd = -1;
 
     private enum STATE {
         TYPING,
@@ -96,9 +102,10 @@ public class GestureTypingService extends Service {
 
                 try {
                     java.lang.Process su = Runtime.getRuntime().exec("su");
+
                     DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
                     String command = "adb shell\n";
-                    outputStream.writeBytes(command);
+    //                    outputStream.writeBytes(command);
 
                     while (true) {
                         float[] newCoords = chatHeadXyToShellCommandCoordSelectWord();
@@ -111,45 +118,50 @@ public class GestureTypingService extends Service {
                                         outputStream.writeBytes(command);
                                         outputStream.flush();
                                     } else {
+                                        fd = openfile();
                                         prevTimestamp = System.currentTimeMillis();
                                         float[] startCoords = chatHeadXyToShellCommandCoord();
                                         command = startTyping(startCoords[0], startCoords[1], eventCount);
                                         eventCount++;
-                                        outputStream.writeBytes(command);
-                                        outputStream.flush();
+                                        sendevents(command);
+    //                                        outputStream.writeBytes(command);
+    //                                        outputStream.flush();
                                         state = STATE.TYPING;
                                     }
                                 } else if (state == STATE.TYPING) {
                                     command = finishTyping(newCoords[0], newCoords[1]);
-                                    outputStream.writeBytes(command);
-                                    outputStream.flush();
+                                    sendevents(command);
+                                    closefile(fd);
+    //                                    outputStream.writeBytes(command);
+    //                                    outputStream.flush();
                                     state = STATE.IDLING;
                                 }
                                 buttonPressed = false;
-//                            }
+    //                            }
 
-//                            else { // prevIndicator == 0
-//                                long curButtonTimestamp = System.currentTimeMillis();
-//                                if (curButtonTimestamp - prevButtonTimestamp > 3000) {
-//                                    command = doDeleteWord(eventCount);
-//                                    eventCount++;
-//                                    outputStream.writeBytes(command);
-//                                    outputStream.flush();
-//                                    prevButtonTimestamp = System.currentTimeMillis();
-//                                }
-//                            }
-//                        }
+    //                            else { // prevIndicator == 0
+    //                                long curButtonTimestamp = System.currentTimeMillis();
+    //                                if (curButtonTimestamp - prevButtonTimestamp > 3000) {
+    //                                    command = doDeleteWord(eventCount);
+    //                                    eventCount++;
+    //                                    outputStream.writeBytes(command);
+    //                                    outputStream.flush();
+    //                                    prevButtonTimestamp = System.currentTimeMillis();
+    //                                }
+    //                            }
+    //                        }
 
-//                        else { // indicator = 1
-//                            prevButtonTimestamp = System.currentTimeMillis();
+    //                        else { // indicator = 1
+    //                            prevButtonTimestamp = System.currentTimeMillis();
                         }
 
                         if (state == STATE.TYPING) {
                             curTimestamp = System.currentTimeMillis();
-                            if (curTimestamp - prevTimestamp >= 250) {
+                            if (curTimestamp - prevTimestamp >= 50) {
                                 command = setPos(newCoords[0], newCoords[1]);
-                                outputStream.writeBytes(command);
-                                outputStream.flush();
+                                sendevents(command);
+    //                                outputStream.writeBytes(command);
+    //                                outputStream.flush();
                                 prevTimestamp = curTimestamp;
                             }
 
@@ -247,7 +259,18 @@ public class GestureTypingService extends Service {
     }
 
     public static String doTap(float x, float y) {
-        return String.format("input tap %f %f\n", x, y);
+        return String.format("adb shell input tap %f %f\n", x, y);
+    }
+
+    public static String doTap(float x, float y, int eventCount) {
+        return String.format("sendevent /dev/input/event2 3 57 %d\n" +
+                "sendevent /dev/input/event2 3 53 %d\n" +
+                "sendevent /dev/input/event2 3 54 %d\n" +
+                "sendevent /dev/input/event2 3 58 51\n" +
+                "sendevent /dev/input/event2 3 48 5\n" +
+                "sendevent /dev/input/event2 0 0 0\n" +
+                "sendevent /dev/input/event2 3 57 -1\n" +
+                "sendevent /dev/input/event2 0 0 0\n", eventCount, x, y);
     }
 
     public static String doDeleteWord(int eventCount) {
@@ -282,6 +305,13 @@ public class GestureTypingService extends Service {
                 "sendevent /dev/input/event2 0 0 0\n" +
                 "sendevent /dev/input/event2 3 57 -1\n" +
                 "sendevent /dev/input/event2 0 0 0\n", eventCount);
+    }
+
+    public void sendevents(String command) {
+        List<String[]> argvs = Util.splitCommand(command);
+        for (String[] argv : argvs) {
+            sendevent(fd, argv[2], argv[3], argv[4]);
+        }
     }
 
     public static GestureTypingService getInstance() {
