@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
@@ -22,7 +23,6 @@
         </activity>
 
         <service android:enabled="true" android:name=".ChatHeadService"></service>
-        <service android:enabled="true" android:name=".GestureTypingIntentService"></service>
         <service android:enabled="true" android:name=".GestureTypingService"></service>
     </application>
 

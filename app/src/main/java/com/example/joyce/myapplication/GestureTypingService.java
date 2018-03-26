@@ -1,7 +1,9 @@
 package com.example.joyce.myapplication;
 
+import android.app.Instrumentation;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -9,10 +11,16 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
 import android.support.annotation.Nullable;
+import android.view.KeyEvent;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.List;
 
 /**
@@ -35,12 +43,13 @@ public class GestureTypingService extends Service {
     float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 750, 670, 1000};
     float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
 
+    boolean continuousPressedType = false;
+
     int eventCount = 1;
     int fd = -1;
 
     private enum STATE {
         TYPING,
-        WORD_SELECTION,
         IDLING
     }
 
@@ -51,11 +60,14 @@ public class GestureTypingService extends Service {
     private int indicator = 1;
     private int prevIndicator = 1;
     boolean buttonPressed = false;
+    boolean buttonShortPressed =false;
+    boolean buttonLongPressed = false;
 
     long prevTimestamp;
     long curTimestamp;
 
     long prevButtonTimestamp;
+    long curButtonTimestamp;
 
     public void setGyroData(float[] gyroData) {
         this.gyroData = gyroData;
@@ -64,7 +76,22 @@ public class GestureTypingService extends Service {
     public void setIndicator(int indicator) {
         this.indicator = indicator;
         if (this.indicator == 0 && prevIndicator == 1) {
+            prevButtonTimestamp = System.currentTimeMillis();
             buttonPressed = true;
+        } else if (this.indicator == 0 && buttonPressed) {
+            curButtonTimestamp = System.currentTimeMillis();
+            if (curButtonTimestamp - prevButtonTimestamp > 700) {
+                buttonLongPressed = true;
+                buttonShortPressed = false;
+                buttonPressed = false;
+            }
+        } else if (this.indicator == 1 && buttonPressed) {
+            curButtonTimestamp = System.currentTimeMillis();
+            if (curButtonTimestamp - prevButtonTimestamp < 300) {
+                buttonShortPressed = true;
+                buttonLongPressed = false;
+                buttonPressed = false;
+            }
         }
     }
 
@@ -102,19 +129,23 @@ public class GestureTypingService extends Service {
 
                 try {
                     java.lang.Process su = Runtime.getRuntime().exec("su");
-
                     DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
                     String command = "adb shell\n";
     //                    outputStream.writeBytes(command);
 
                     while (true) {
-                        float[] newCoords = chatHeadXyToShellCommandCoordSelectWord();
-                        // button clicked
-                        if (buttonPressed) {
-                                prevButtonTimestamp = System.currentTimeMillis();
+                        if (continuousPressedType) {
+
+                        }
+
+
+                        else {
+                            float[] newCoords = chatHeadXyToShellCommandCoordSelectWord();
+                            // button clicked
+                            if (buttonShortPressed) {
                                 if (state == STATE.IDLING) {
                                     if (isSelectWord(newCoords[0], newCoords[1])) {
-                                        command = doTap(newCoords[0]/2, newCoords[1]/2);
+                                        command = doTap(newCoords[0] / 2, newCoords[1] / 2);
                                         outputStream.writeBytes(command);
                                         outputStream.flush();
                                     } else {
@@ -124,56 +155,50 @@ public class GestureTypingService extends Service {
                                         command = startTyping(startCoords[0], startCoords[1], eventCount);
                                         eventCount++;
                                         sendevents(command);
-    //                                        outputStream.writeBytes(command);
-    //                                        outputStream.flush();
+//                                        outputStream.writeBytes(command);
+//                                        outputStream.flush();
                                         state = STATE.TYPING;
                                     }
                                 } else if (state == STATE.TYPING) {
                                     command = finishTyping(newCoords[0], newCoords[1]);
                                     sendevents(command);
                                     closefile(fd);
-    //                                    outputStream.writeBytes(command);
-    //                                    outputStream.flush();
+//                                    outputStream.writeBytes(command);
+//                                    outputStream.flush();
                                     state = STATE.IDLING;
                                 }
-                                buttonPressed = false;
-    //                            }
-
-    //                            else { // prevIndicator == 0
-    //                                long curButtonTimestamp = System.currentTimeMillis();
-    //                                if (curButtonTimestamp - prevButtonTimestamp > 3000) {
-    //                                    command = doDeleteWord(eventCount);
-    //                                    eventCount++;
-    //                                    outputStream.writeBytes(command);
-    //                                    outputStream.flush();
-    //                                    prevButtonTimestamp = System.currentTimeMillis();
-    //                                }
-    //                            }
-    //                        }
-
-    //                        else { // indicator = 1
-    //                            prevButtonTimestamp = System.currentTimeMillis();
-                        }
-
-                        if (state == STATE.TYPING) {
-                            curTimestamp = System.currentTimeMillis();
-                            if (curTimestamp - prevTimestamp >= 50) {
-                                command = setPos(newCoords[0], newCoords[1]);
-                                sendevents(command);
-    //                                outputStream.writeBytes(command);
-    //                                outputStream.flush();
-                                prevTimestamp = curTimestamp;
+                                buttonShortPressed = false;
                             }
 
-                        }
+                            else if (buttonLongPressed) { //delete
+                                int wordLength = getLastWordLength();
+                                if (wordLength > 0) {
+                                    command = doDeleteWord(wordLength);
+                                    outputStream.writeBytes(command);
+                                    outputStream.flush();
+                                }
+                                buttonLongPressed = false;
+                            }
 
-                        prevIndicator = indicator;
+                            if (state == STATE.TYPING) {
+                                curTimestamp = System.currentTimeMillis();
+                                if (curTimestamp - prevTimestamp >= 50) {
+                                    command = setPos(newCoords[0], newCoords[1]);
+                                    sendevents(command);
+                                    //                                outputStream.writeBytes(command);
+                                    //                                outputStream.flush();
+                                    prevTimestamp = curTimestamp;
+                                }
+
+                            }
+
+                            prevIndicator = indicator;
+                        }
 
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
 
             }
         }).start();
@@ -259,52 +284,16 @@ public class GestureTypingService extends Service {
     }
 
     public static String doTap(float x, float y) {
-        return String.format("adb shell input tap %f %f\n", x, y);
+        return String.format("input tap %f %f\n", x, y);
     }
 
-    public static String doTap(float x, float y, int eventCount) {
-        return String.format("sendevent /dev/input/event2 3 57 %d\n" +
-                "sendevent /dev/input/event2 3 53 %d\n" +
-                "sendevent /dev/input/event2 3 54 %d\n" +
-                "sendevent /dev/input/event2 3 58 51\n" +
-                "sendevent /dev/input/event2 3 48 5\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 57 -1\n" +
-                "sendevent /dev/input/event2 0 0 0\n", eventCount, x, y);
-    }
-
-    public static String doDeleteWord(int eventCount) {
-        return String.format("sendevent /dev/input/event2 3 57 %d\n" +
-                "sendevent /dev/input/event2 3 53 1432\n" +
-                "sendevent /dev/input/event2 3 54 2099\n" +
-                "sendevent /dev/input/event2 3 58 54\n" +
-                "sendevent /dev/input/event2 3 48 3\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1433\n" +
-                "sendevent /dev/input/event2 3 54 2100\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1434\n" +
-                "sendevent /dev/input/event2 3 58 57\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1435\n" +
-                "sendevent /dev/input/event2 3 48 4\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1436\n" +
-                "sendevent /dev/input/event2 3 58 58\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1437\n" +
-                "sendevent /dev/input/event2 3 58 59\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1438\n" +
-                "sendevent /dev/input/event2 3 58 60\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 54 2101\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 53 1437\n" +
-                "sendevent /dev/input/event2 3 58 50\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 57 -1\n" +
-                "sendevent /dev/input/event2 0 0 0\n", eventCount);
+    public static String doDeleteWord(int wordLength) {
+        String command = "input keyevent";
+        for (int i = 0; i < wordLength; i++) {
+            command += (" " + String.valueOf(KeyEvent.KEYCODE_DEL));
+        }
+        command += "\n";
+        return command;
     }
 
     public void sendevents(String command) {
@@ -312,6 +301,41 @@ public class GestureTypingService extends Service {
         for (String[] argv : argvs) {
             sendevent(fd, argv[2], argv[3], argv[4]);
         }
+    }
+
+    public int getLastWordLength() {
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/0_0_A_events(9).tema";
+        try {
+            FileInputStream fis = new FileInputStream (new File(path));
+            InputStreamReader isr = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
+            }
+            String str = sb.toString();
+            String[] lines = str.split("\t");
+            for (int i = lines.length-1; i>0; i--) {
+                line = lines[i];
+                if (line.length() >= 6 && line.substring(0, 6).equals("(timer")) {
+                    continue;
+                } else if (line.length() >= 4 && line.substring(0, 4).equals("pos@")) {
+                    continue;
+                } else if (line.equals("<Sp>") || line.equals("<Bksp>")) {
+                    continue;
+                } else if (line.length() >= 3 && line.substring(0, 3).equals("[#]")) {
+                    return 0;
+                } else {
+                    return line.length();
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     public static GestureTypingService getInstance() {

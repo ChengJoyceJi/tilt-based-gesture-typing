@@ -1,10 +1,13 @@
 package com.example.joyce.myapplication;
 
+import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,12 +18,16 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
-    private native void helloLog(String logThis);
-    private native void sendevent(String device, String type, String code, String value);
 
     Context mContext;
     EditText mEditText;
@@ -73,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
         imm.showSoftInput(mEditText, InputMethodManager.SHOW_IMPLICIT);
 
         startService(new Intent(mContext, ChatHeadService.class));
-//        startService(new Intent(mContext, GestureTypingIntentService.class));
         startService(new Intent(mContext, GestureTypingService.class));
 
         mButton.setOnClickListener(new View.OnClickListener() {
@@ -98,8 +104,17 @@ public class MainActivity extends AppCompatActivity {
 //                    }
 //                }).start();
 
-                String tapCommand = "adb shell input tap 150 730\n";
-                runCommand(tapCommand);
+//                String tapCommand = "adb shell input tap 380 945\n";
+//                runCommand(tapCommand);
+
+                final Instrumentation inst = new Instrumentation();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        inst.sendKeyDownUpSync(KeyEvent.KEYCODE_DEL);
+                    }
+                }).start();
+
 
 
             }
@@ -120,11 +135,45 @@ public class MainActivity extends AppCompatActivity {
 //                        .concat(finishTyping(548, 1652));
 //                runCommand(command);
 
-                helloLog("This will log to LogCat via the native call.");
-                List<String[]> argvs = Util.splitCommand(getTapEample());
-                for (String[] argv : argvs) {
-                    sendevent(argv[1], argv[2], argv[3], argv[4]);
+//                helloLog("This will log to LogCat via the native call.");
+//                List<String[]> argvs = Util.splitCommand(getTapEample());
+//                for (String[] argv : argvs) {
+//                    sendevent(argv[1], argv[2], argv[3], argv[4]);
+//                }
+                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/0_0_A_events(8).tema";
+                try {
+                    FileInputStream fis = new FileInputStream (new File(path));
+                    InputStreamReader isr = new InputStreamReader(fis);
+                    BufferedReader bufferedReader = new BufferedReader(isr);
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    String str = sb.toString();
+                    String[] lines = str.split("\t");
+                    for (int i = lines.length-1; i>0; i--) {
+                        line = lines[i];
+                        if (line.length() >= 6 && line.substring(0, 6).equals("(timer")) {
+                            continue;
+                        } else if (line.length() >= 4 && line.substring(0, 4).equals("pos@")) {
+                            continue;
+                        } else if (line.equals("<Sp>") || line.equals("<Bksp>")) {
+                            continue;
+                        } else if (line.length() >= 3 && line.substring(0, 3).equals("[#]")) {
+                            System.out.println(0);
+                            break;
+                        } else {
+                            System.out.println(line + line.length());
+                            break;
+                        }
+                    }
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
+
             }
         });
 
@@ -158,18 +207,13 @@ public class MainActivity extends AppCompatActivity {
         // To avoid UI freezes run in thread
         new Thread(new Runnable() {
             public void run() {
-                Process su = null;
                 try {
-                    su = Runtime.getRuntime().exec("su");
-                    su.getOutputStream().write(command.getBytes());
-                    su.getOutputStream().write("exit\n".getBytes());
-                    su.waitFor();
+                    java.lang.Process su = Runtime.getRuntime().exec("su");
+                    DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
+                    outputStream.writeBytes(command);
+                    outputStream.flush();
                 } catch (Exception e) {
                     e.printStackTrace();
-                } finally {
-                    if (su != null) {
-                        su.destroy();
-                    }
                 }
             }
         }).start();
