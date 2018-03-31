@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
     float[] KEYBOARD_RECT = new float[] {0, 1500, 1600, 2160};
     float[] CHATHEAD_RECT = new float[] {0, 750, 750, 1000};
-    float[] ARDUINO_RECT = new float[] {30, -60, 60, -30};
+    float[] ARDUINO_RECT = new float[] {20, -45, 45, -20};
 
 //    float[] ARDUINO_RECT_LATERAL = new float[] {60, -30, 45, -30};
 
