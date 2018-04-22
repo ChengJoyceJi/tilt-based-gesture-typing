@@ -35,14 +35,21 @@ public class GestureTypingService extends Service {
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
 
-    float[] KEYBOARD_RECT = new float[] {0, 1500, 1600, 2160};
-    float[] CHATHEAD_RECT = new float[] {0, 750, 750, 1000};
-    float[] ARDUINO_RECT = new float[] {30, -60, 60, -30};
+//    // Full screen
+//    float[] CHATHEAD_RECT = new float[] {0, 750, 750, 1000};
+//    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 750, 670, 1000};
+//
+//    float[] KEYBOARD_RECT = new float[] {0, 1500, 1600, 2160};
+//    float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
 
-    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 750, 670, 1000};
-    float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
+    // Small screen
+    float[] CHATHEAD_RECT = new float[] {0, 700, 380, 560};
+    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 700, 350, 560};
 
-    boolean continuousPressTyping = true;
+    float[] KEYBOARD_RECT = new float[] {0, 1400, 870, 1260};
+    float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1400, 760, 1260};
+
+    boolean continuousPressTyping = false;
 
     int eventCount = 1;
     int fd = -1;
@@ -118,14 +125,14 @@ public class GestureTypingService extends Service {
                 buttonPressed = true;
             } else if (this.indicator == 0 && buttonPressed) {
                 curButtonTimestamp = System.currentTimeMillis();
-                if (curButtonTimestamp - prevButtonTimestamp > 300) {
+                if (curButtonTimestamp - prevButtonTimestamp > 500) {
                     buttonLongPressed = true;
                     buttonShortPressed = false;
                     buttonPressed = false;
                 }
             } else if (this.indicator == 1 && buttonPressed && state == STATE.IDLING) {
                 curButtonTimestamp = System.currentTimeMillis();
-                if (curButtonTimestamp - prevButtonTimestamp < 200) {
+                if (curButtonTimestamp - prevButtonTimestamp < 400) {
                     buttonShortPressed = true;
                     buttonLongPressed = false;
                     buttonPressed = false;
@@ -151,7 +158,7 @@ public class GestureTypingService extends Service {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, final int startId) {
+    public int onStartCommand(Intent intent, final int flags, final int startId) {
         Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
 
         // call a new service handler. The service ID can be used to identify the service
@@ -232,6 +239,10 @@ public class GestureTypingService extends Service {
                                 if (state == STATE.IDLING) {
                                     if (isSelectWord(newCoords[0], newCoords[1])) {
                                         command = doTap(newCoords[0] / 2, newCoords[1] / 2);
+                                        outputStream.writeBytes(command);
+                                        outputStream.flush();
+                                    } else if (isNextPhrase(newCoords[0], newCoords[1])) {
+                                        command = doNextPhrase();
                                         outputStream.writeBytes(command);
                                         outputStream.flush();
                                     } else {
@@ -334,27 +345,37 @@ public class GestureTypingService extends Service {
     }
 
     public boolean isSelectWord(float x, float y) {
-        return y < 1600;
+        return y < 870;
+    }
+
+    public boolean isNextPhrase(float x, float y) {
+        return y >= 1110 && y <= 1260 && x >= 1200;
     }
 
     public static String setPos(float x, float y) {
+        float[] newCoordsRotated = Util.rotate(new float[] {x, y});
         return String.format("sendevent /dev/input/event2 3 53 %f\n" +
                 "sendevent /dev/input/event2 3 54 %f\n" +
-                "sendevent /dev/input/event2 0 0 0\n", x, y);
+                "sendevent /dev/input/event2 0 0 0\n", newCoordsRotated[0], newCoordsRotated[1]);
     }
 
     public static String startTyping(float x, float y, int eventCount) {
+        float[] newCoordsRotated = Util.rotate(new float[] {x, y});
         return String.format("sendevent /dev/input/event2 3 57 %d\n" +
                 "sendevent /dev/input/event2 3 53 %f\n" +
                 "sendevent /dev/input/event2 3 54 %f\n" +
                 "sendevent /dev/input/event2 3 58 54\n" +
                 "sendevent /dev/input/event2 3 48 4\n" +
-                "sendevent /dev/input/event2 0 0 0\n", eventCount, x, y);
+                "sendevent /dev/input/event2 0 0 0\n", eventCount, newCoordsRotated[0], newCoordsRotated[1]);
     }
 
     public static String finishTyping(float x, float y) {
         return String.format("sendevent /dev/input/event2 3 57 -1\n" +
                 "sendevent /dev/input/event2 0 0 0\n");
+    }
+
+    public static String doNextPhrase() {
+        return doTap(668, 678);
     }
 
     public static String doTap(float x, float y) {
@@ -378,7 +399,7 @@ public class GestureTypingService extends Service {
     }
 
     public int getLastWordLength() {
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/0_0_A_events(11).tema";
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/2_20_A_events.tema";
         try {
             FileInputStream fis = new FileInputStream (new File(path));
             InputStreamReader isr = new InputStreamReader(fis);

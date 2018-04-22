@@ -25,7 +25,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -46,14 +45,24 @@ public class MainActivity extends AppCompatActivity {
     float[] gyroData = new float[] {0, 0, 0};
     int indicator = 1;
 
-    float[] KEYBOARD_RECT = new float[] {0, 1500, 1600, 2160};
-    float[] CHATHEAD_RECT = new float[] {0, 750, 750, 1000};
-    float[] ARDUINO_RECT = new float[] {20, -45, 45, -20};
+    // Pose 1
+//    float[] ARDUINO_RECT = new float[] {15, -20, 20, -15}; // small
+//    float[] ARDUINO_RECT = new float[] {20, -45, 45, -20}; // medium
+//    float[] ARDUINO_RECT = new float[] {30, -50, 50, -30};
+//    float[] ARDUINO_RECT = new float[] {30, -60, 60, -30}; // large
 
-//    float[] ARDUINO_RECT_LATERAL = new float[] {60, -30, 45, -30};
+    // Pose 2
+//    float[] ARDUINO_RECT = new float[] {30, -30, 20, -20}; // small
+//    float[] ARDUINO_RECT = new float[] {45, -45, 30, -30}; // medium
+    float[] ARDUINO_RECT = new float[] {50, -50, 35, -35}; // use this
+//    float[] ARDUINO_RECT = new float[] {60, -60, 45, -45}; // large
 
-    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 750, 670, 1000};
-    float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
+
+//    // Full screen
+//    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 750, 670, 1000};
+
+    // Small sreen
+    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 700, 350, 560};
 
     static {
         System.loadLibrary("myapplication");
@@ -258,50 +267,5 @@ public class MainActivity extends AppCompatActivity {
                 "sendevent /dev/input/event2 3 57 4294967295\n" +
                 "sendevent /dev/input/event2 0 0 0\n";
     }
-
-
-    // Mapping: gyro -> coordinate
-    // Keyboard swipe: gyroToCoords(row, pitch, 0, 1500, 1600, 2100)
-    // x: [-45, 45] -> [0, 1500]
-    // y: [-45, 45] -> [1600, 2100]
-    //
-    public float[] gyroToCoords(float row, float pitch, float[] rect) {
-        float X_MIN = rect[0];
-        float X_MAX = rect[1];
-        float Y_MIN = rect[2];
-        float Y_MAX = rect[3];
-
-        float x_mid = (X_MIN + X_MAX) / 2;
-        float y_mid = (Y_MIN + Y_MAX) / 2;
-
-        float posX = x_mid - row * (X_MAX - X_MIN) / 90;
-        float posY = y_mid - pitch * (Y_MAX - Y_MIN) / 90;
-
-        posX = Math.max(posX, X_MIN);
-        posX = Math.min(posX, X_MAX);
-        posY = Math.max(posY, Y_MIN);
-        posY = Math.min(posY, Y_MAX);
-
-        return new float[] {posX, posY};
-    }
-
-    public static int selectWords(float row, float pitch) {
-        if (pitch < 45) return -1;
-        if (row > 25) return 1;  // left word
-        if (row < -25) return 3; // right word
-        else return 2; // middle word
-    }
-
-    public float[] chatHeadXyToShellCommandCoord() {
-        float[] xy = ChatHeadService.getInstance().getXY();
-        return Util.rectToRectMapping(CHATHEAD_RECT, KEYBOARD_RECT, xy[0], xy[1]);
-    }
-
-    public float[] chatHeadXyToShellCommandCoordSelectWord() {
-        float[] xy = ChatHeadService.getInstance().getXY();
-        return Util.rectToRectMapping(CHATHEAD_SELECTWORD_RECT, KEYBOARD_SELECTWORD_RECT, xy[0], xy[1]);
-    }
-
-
 
 }

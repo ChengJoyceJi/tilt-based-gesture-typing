@@ -34,6 +34,14 @@ public class Util {
         return new float[] {newx, newy};
     }
 
+    public static float[] rotate(float[] xy) {
+        float x = xy[0];
+        float y = xy[1];
+        float new_x = 2 * 770 - y;
+        float new_y = x + 580;
+        return new float[] {new_x, new_y};
+    }
+
     public static List<String[]> splitCommand(String command) {
         String[] commands = command.split("\n");
         List<String[]> result = new ArrayList<>();
