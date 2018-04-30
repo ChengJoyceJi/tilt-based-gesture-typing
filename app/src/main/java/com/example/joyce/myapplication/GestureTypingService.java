@@ -43,8 +43,8 @@ public class GestureTypingService extends Service {
 //    float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1500, 1440, 2160};
 
     // Small screen
-    float[] CHATHEAD_RECT = new float[] {0, 700, 380, 560};
-    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 700, 350, 560};
+    float[] CHATHEAD_RECT = new float[] {0, 700, 380, 580};
+    float[] CHATHEAD_SELECTWORD_RECT = new float[] {0, 700, 350, 580};
 
     float[] KEYBOARD_RECT = new float[] {0, 1400, 870, 1260};
     float[] KEYBOARD_SELECTWORD_RECT = new float[] {0, 1400, 760, 1260};
@@ -399,7 +399,7 @@ public class GestureTypingService extends Service {
     }
 
     public int getLastWordLength() {
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/2_20_A_events.tema";
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/12_1_A_events.tema";
         try {
             FileInputStream fis = new FileInputStream (new File(path));
             InputStreamReader isr = new InputStreamReader(fis);

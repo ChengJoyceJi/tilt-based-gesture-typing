@@ -48,13 +48,13 @@ public class MainActivity extends AppCompatActivity {
     // Pose 1
 //    float[] ARDUINO_RECT = new float[] {15, -20, 20, -15}; // small
 //    float[] ARDUINO_RECT = new float[] {20, -45, 45, -20}; // medium
-//    float[] ARDUINO_RECT = new float[] {30, -50, 50, -30};
+   float[] ARDUINO_RECT = new float[] {30, -50, 50, -30}; // use this
 //    float[] ARDUINO_RECT = new float[] {30, -60, 60, -30}; // large
 
     // Pose 2
 //    float[] ARDUINO_RECT = new float[] {30, -30, 20, -20}; // small
 //    float[] ARDUINO_RECT = new float[] {45, -45, 30, -30}; // medium
-    float[] ARDUINO_RECT = new float[] {50, -50, 35, -35}; // use this
+//   float[] ARDUINO_RECT = new float[] {50, -50, 35, -35}; // use this
 //    float[] ARDUINO_RECT = new float[] {60, -60, 45, -45}; // large
 
 
@@ -132,57 +132,6 @@ public class MainActivity extends AppCompatActivity {
         mButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                String command = "adb shell\n"
-//                        .concat(startTyping(306, 1852))
-//                        .concat(setPos(386, 1660))
-//                        .concat(setPos(548, 1652))
-//                        .concat(setPos(657, 1852))
-//                        .concat(setPos(766, 2052))
-//                        .concat(setPos(576, 1856))
-//                        .concat(setPos(386, 1660))
-//                        .concat(setPos(548, 1652))
-//                        .concat(finishTyping(548, 1652));
-//                runCommand(command);
-
-//                helloLog("This will log to LogCat via the native call.");
-//                List<String[]> argvs = Util.splitCommand(getTapEample());
-//                for (String[] argv : argvs) {
-//                    sendevent(argv[1], argv[2], argv[3], argv[4]);
-//                }
-                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/TEMA_logs/0_0_A_events(8).tema";
-                try {
-                    FileInputStream fis = new FileInputStream (new File(path));
-                    InputStreamReader isr = new InputStreamReader(fis);
-                    BufferedReader bufferedReader = new BufferedReader(isr);
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = bufferedReader.readLine()) != null) {
-                        sb.append(line);
-                    }
-                    String str = sb.toString();
-                    String[] lines = str.split("\t");
-                    for (int i = lines.length-1; i>0; i--) {
-                        line = lines[i];
-                        if (line.length() >= 6 && line.substring(0, 6).equals("(timer")) {
-                            continue;
-                        } else if (line.length() >= 4 && line.substring(0, 4).equals("pos@")) {
-                            continue;
-                        } else if (line.equals("<Sp>") || line.equals("<Bksp>")) {
-                            continue;
-                        } else if (line.length() >= 3 && line.substring(0, 3).equals("[#]")) {
-                            System.out.println(0);
-                            break;
-                        } else {
-                            System.out.println(line + line.length());
-                            break;
-                        }
-                    }
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
             }
         });
 
@@ -206,66 +155,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         server.onDestroy();
     }
-
-    /**
-     * Run scripts in separate thread.
-     *
-     * @param command shell script.
-     */
-    public void runCommand(final String command) {
-        // To avoid UI freezes run in thread
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    java.lang.Process su = Runtime.getRuntime().exec("su");
-                    DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
-                    outputStream.writeBytes(command);
-                    outputStream.flush();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
-
-    public static String setPos(float x, float y) {
-        return String.format("sendevent /dev/input/event2 3 53 %f\n" +
-                "sendevent /dev/input/event2 3 54 %f\n" +
-                "sendevent /dev/input/event2 0 0 0\n", x, y);
-    }
-
-    public static String startTyping(float x, float y) {
-        return String.format("sendevent /dev/input/event2 3 57 219\n" +
-                "sendevent /dev/input/event2 3 53 %f\n" +
-                "sendevent /dev/input/event2 3 54 %f\n" +
-                "sendevent /dev/input/event2 3 58 54\n" +
-                "sendevent /dev/input/event2 3 48 4\n" +
-                "sendevent /dev/input/event2 0 0 0\n", x, y);
-    }
-
-    public static String finishTyping(float x, float y) {
-        return String.format("sendevent /dev/input/event2 3 57 -1\n" +
-                "sendevent /dev/input/event2 0 2 0\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "input tap %f %f\n", x, y);
-    }
-
-    public static String doTap(float x, float y) {
-        return String.format("input tap %f %f\n", x, y);
-    }
-
-    public String getTapEample() {
-        return "sendevent /dev/input/event2 3 57 368\n" +
-                "sendevent /dev/input/event2 3 53 765\n" +
-                "sendevent /dev/input/event2 3 54 1900\n" +
-                "sendevent /dev/input/event2 3 58 51\n" +
-                "sendevent /dev/input/event2 3 48 5\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 54 1899\n" +
-                "sendevent /dev/input/event2 3 58 46\n" +
-                "sendevent /dev/input/event2 0 0 0\n" +
-                "sendevent /dev/input/event2 3 57 4294967295\n" +
-                "sendevent /dev/input/event2 0 0 0\n";
-    }
+    
 
 }
