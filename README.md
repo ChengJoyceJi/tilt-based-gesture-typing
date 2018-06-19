@@ -15,7 +15,7 @@ Make sure your laptop and Android phone are connected to the same internet
 ### Python
 1. Install PySerial: http://pyserial.readthedocs.io/en/latest/pyserial.html
 2. Connect the Arduino device via USB
-3. In arduino-conn.py, change the name and port number in line 33 to the name and port number of the Arduino device. Do the same thing in client.py line 44.
+3. In arduino-conn.py, change the name and port number in line 33 to the name and port number of the Arduino device. Do the same thing in client.py line 44. (http://www.instructables.com/id/Arduino-Python-Communication-via-USB/)
 4. In terminal, use python arduino-conn.py" to start the script. Make sure you see data running in the terminal. If so, stop the script.
 5. In client.py line 41 change the IP address to the IP address on the Android App
 6. In terminal, use command "python client.py" to start the script
