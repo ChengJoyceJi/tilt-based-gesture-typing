@@ -3,7 +3,8 @@
 This project includes two parts. The first part is Python scripts that reads Gyro data from Arduino device and sends them to Android App via socket. The second part is the Android App which takes the Gyro data and send events to Android phone using NDK. If you need to change the C code, you need to have the NDK set up (https://developer.android.com/ndk/).
 
 ## Set up
-Make sure your laptop and Android phone are connected to the same internet
+1. Make sure your laptop and Android phone are connected to the same internet
+2. Change the resolution of the Android phone to 768 700 220 dpi
 
 ### Android studio
 1. Download Android studio
