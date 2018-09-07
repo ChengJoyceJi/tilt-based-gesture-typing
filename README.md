@@ -52,3 +52,6 @@ Notes:
 2. Keep the phone charging whenever possible
 3. Say if something went wrong on session id 50 and you need to restart the TEMA app, the next session id should be 51.
 4. Everyday after all the users finished, charge the phone, and restart the phone.
+
+Resolution used:
+768 700 220 in width, height, DPI
