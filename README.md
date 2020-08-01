@@ -1,5 +1,7 @@
 # tilt-based-gesture-typing
 
+Source code for publication **<em>RotoSwype: Word-Gesture Typing using a Ring</em>**: https://dl.acm.org/doi/10.1145/3290605.3300244
+
 This project includes two parts. The first part is Python scripts that reads Gyro data from Arduino device and sends them to Android App via socket. The second part is the Android App which takes the Gyro data and send events to Android phone using NDK. If you need to change the C code, you need to have the NDK set up (https://developer.android.com/ndk/).
 
 ## Set up
